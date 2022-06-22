@@ -1,0 +1,249 @@
+<template>
+  <q-page class="ub-page" v-if="loadpage">
+    <div class="row items-center" style="margin-bottom: 10px;">
+      <div class="col-md-12 q-ma-sm">
+        <div class="text-h6">Tracking Detail</div>
+      </div>
+      <div style="width:100%">
+        <q-splitter v-model="splitterHorizonModel" horizontal>
+          <template v-slot:before>
+            <div>
+              <q-splitter v-model="splitterModel1">
+                <template v-slot:before>
+                  <ve-table
+                    :max-height="400"
+                    :table-data="tableData"
+                    row-key-field-name="rowKey"
+                    id="loading-container"
+                    :columns="columns"
+                    :virtual-scroll-option="virtualScrollOption"
+                  />
+                </template>
+
+                <template v-slot:after>
+
+                </template>
+              </q-splitter>
+            </div>
+          </template>
+
+          <template v-slot:after v-if="loadrequest">
+            <div>
+              <q-splitter v-model="splitterModel0" style="height:450px;">
+                <template v-slot:before>
+                  <div>
+                    <q-splitter v-model="splitterModel" style="height:450px;">
+                      <template v-slot:before>
+                        <div class="q-pa-md">
+                          <div class="text-h6 q-mb-md">Request</div>
+                          <div class="q-my-md">
+                            <pre
+                              v-highlightjs="http_request"
+                            ><code class="http"></code></pre>
+                          </div>
+                        </div>
+                      </template>
+
+                      <template v-slot:after>
+                        <div class="q-pa-md">
+                          <div class="text-h6 q-mb-md">Response</div>
+                          <div class="q-my-md">
+                            <pre
+                              v-highlightjs="http_response"
+                            ><code class="http"></code></pre>
+                          </div>
+                        </div>
+                      </template>
+                    </q-splitter>
+                  </div>
+                </template>
+
+                <template v-slot:after>
+                  <div class="q-pa-md">
+                    <div class="text-h6 q-mb-md">Inspector</div>
+                  </div>
+                  <q-expansion-item label="Request Cookies">
+                    <q-list dense bordered padding>
+                      <q-item
+                        clickable
+                        v-ripple
+                        v-for="cookie in cookies"
+                        :key="cookie.name"
+                      >
+                        <q-item-section>{{ cookie.name }}</q-item-section>
+                        <q-item-section side>{{ cookie.value }}</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-expansion-item>
+
+                  <q-expansion-item label="Request Parameters">
+                    <q-list dense bordered padding>
+                      <q-item
+                        clickable
+                        v-ripple
+                        v-for="param in Object.entries(params)"
+                        :key="param[0]"
+                      >
+                        <q-item-section>{{ param[0] }}</q-item-section>
+                        <q-item-section side>{{ param[1][0] }}</q-item-section>
+                      </q-item>
+                    </q-list>
+                  </q-expansion-item>
+                </template>
+              </q-splitter>
+            </div>
+          </template>
+        </q-splitter>
+      </div>
+    </div>
+  </q-page>
+</template>
+
+<script>
+import axios from "axios";
+import { getHeader } from "@/services/config.js";
+import { AUTH_REFRESH } from "../store/actions/auth";
+
+export default {
+  name: "PathDetail",
+  data() {
+    return {
+      nextpage: null,
+      previouspage: null,
+      count: 0,
+      loadrequest: false,
+      loadpage: false,
+      loading: false,
+      splitterModel: 50,
+      splitterModel0: 150,
+      splitterModel1: 150,
+      splitterHorizonModel: 50,
+      http_request: "",
+      http_response: "",
+      hitDetails: false,
+      hitsTableData2: [],
+      selectedHit: null,
+      hitsDisplayFields: {
+        host: ["request", "hostname"],
+        method: ["request", "method"],
+        path: ["request", "path"],
+        "response.status_code": ["response", "status"],
+        mime: ["response", "mime_type"],
+        user: ["user"]
+      },
+      cookies: "",
+      params: {},
+      virtualScrollOption: {
+        enable: true,
+        scrolling: this.scrolling
+      },
+    };
+  },
+  computed: {
+    /*hitsTableData: function() {
+            return HitsData;
+        }*/
+  },
+
+  mounted
+
+  created() {
+    this.getPath("api/path/620b0de806513256d540d756/es_requests/");
+  },
+  methods: {
+    onRowClick: function(row) {
+      this.loadrequest = true;
+      this.http_request = row.request.headers + "\r\n\r\n" + row.request.body;
+      this.http_response =
+        row.response.headers + "\r\n\r\n" + row.response.body;
+      this.cookies = row.request_log.request.cookies;
+      if (row.request_log.request.method === "GET") {
+        this.params = row.request.get_params;
+      } else {
+        this.params = row.request.post_params;
+      }
+    },
+    /** show and close loading state */
+    show() {
+      this.loadingInstance.show();
+    },
+    close() {
+      this.loadingInstance.close();
+    },
+
+    scrolling({
+      startRowIndex,
+      visibleStartIndex,
+      visibleEndIndex,
+      visibleAboveCount,
+      visibleBelowCount
+    }) {
+      if (visibleEndIndex > this.tableData.length && this.nextpage != null) {
+        this.show();
+        this.getPath(this.nextpage);
+      }
+    },
+
+    getPath(url) {
+      axios
+        .get(url, { headers: getHeader() })
+        .then(response => {
+          this.hitsTableData2 = this.hitsTableData2.concat(
+            response.data.results
+          );
+          this.loadpage = true;
+          this.loading = false;
+          this.nextpage = response.data.next.replace(
+            "http://172.31.47.55:8000/",
+            ""
+          );
+          this.previouspage = response.data.previous.replace(
+            "http://172.31.47.55:8000/",
+            ""
+          );
+        })
+        .catch(error => {
+          console.log("There was an error: " + error.response.data.detail);
+          if (error.response.status == 401) {
+            let refresh = JSON.parse(localStorage.getItem("user-token"))
+              .refresh;
+            this.$store
+              .dispatch(AUTH_REFRESH, { refresh })
+              .then(() => {
+                axios.get(url, { headers: getHeader() }).then(response => {
+                  this.hitsTableData2 = this.hitsTableData2.concat(
+                    response.data.results
+                  );
+                  this.loadpage = true;
+                  this.loading = false;
+                  this.nextpage = response.data.next.replace(
+                    "http://172.31.47.55:8000/",
+                    ""
+                  );
+                  this.previouspage = response.data.previous.replace(
+                    "http://172.31.47.55:8000/",
+                    ""
+                  );
+                });
+              })
+              .catch(() => this.$router.push("/login"));
+          }
+        });
+    }
+  },
+
+  destroyed() {
+    this.loadingInstance.destroy();
+  }
+};
+</script>
+
+<style>
+pre {
+  white-space: pre-wrap; /* Since CSS 2.1 */
+  white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+  white-space: -pre-wrap; /* Opera 4-6 */
+  white-space: -o-pre-wrap; /* Opera 7 */
+  word-wrap: break-word; /* Internet Explorer 5.5+ */
+}
+</style>

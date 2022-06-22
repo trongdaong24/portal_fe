@@ -1,0 +1,286 @@
+<template>
+  <div>
+    <q-card
+      v-ripple
+      flat
+      bordered
+      class="my-card bg-grey-1 q-hoverable"
+      style="margin-bottom: 5px"
+    >
+      <q-card-section
+        ><div class="text-h6">{{ round.display_name }}</div>
+        <div class="row">
+          <div class="col">
+            <span class="text-bold">Member: </span>
+            {{ round.round_members.join(", ") }}
+          </div>
+          <div class="col">
+            <span class="text-bold">Paths: </span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <span class="text-bold">Reviewer: </span>
+            {{ round.round_reviewed_by_username }}
+          </div>
+          <div class="col">
+            <span class="text-bold">Testcase: </span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <span class="text-bold">Due date: </span>
+            {{ round.round_end_date }}
+          </div>
+          <div class="col">
+            <span class="text-bold">Findings: </span>
+          </div>
+        </div>
+        <div class="row" style="max-height: 30vh">
+          <div class="col">
+            <apexchart
+              :options="chart.round_status_chart.options"
+              :series="chart.round_status_chart.series"
+              height="100%"
+            >
+            </apexchart>
+          </div>
+
+          <div class="col">
+            <apexchart
+              :options="chart.progress_status_chart.options"
+              :series="chart.progress_status_chart.series"
+              height="100%"
+            >
+            </apexchart>
+          </div>
+        </div>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn
+          color="primary"
+          size="md"
+          label="Tracking"
+          @click="TrackingRound(round.id)"
+        />
+      </q-card-actions>
+    </q-card>
+  </div>
+</template>
+
+<script>
+import { PATH_LIST_URL } from "@/data/URL.js";
+import utils from "@/utils.js";
+import CONST from "@/data/CONST.js";
+
+export default {
+  name: "RoundCard",
+  props: ["round"],
+  data() {
+    return {
+      link_report: null,
+      chart: {
+        round_status_chart: {
+          options: {
+            chart: {
+              type: "pie"
+            },
+            title: {
+              text: "Round Status",
+              align: "center"
+            },
+            legend: {
+              show: true,
+              position: "right"
+            },
+            labels: CONST.ADMIN_PATH_STATUS_LIST,
+            colors: [
+              "#ffecb3",
+              "#bdbdbd",
+              "whitesmoke",
+              "#e8f5e9",
+              "#a5d6a7",
+              "#ffcc80",
+              "#ffa726",
+              "#42a5f5"
+            ]
+            // responsive: [{
+            //   breakpoint: 480,
+            //   options: {
+            //     chart: {
+            //       width: 200
+            //     },
+            //     legend: {
+            //       position: 'bottom'
+            //     }
+            //   }
+            // }]
+          },
+
+          series: [0, 0, 1, 0, 0, 0, 0, 11]
+        },
+
+        progress_status_chart: {
+          options: {
+            chart: {
+              type: "radialBar"
+            },
+
+            title: {
+              text: "Round Progress",
+              align: "center"
+            },
+
+            labels: ["Current", "Expected"],
+            colors: [
+              function({ value, seriesIndex, w }) {
+                var expected_value = w.config.series[1];
+
+                var diff = expected_value - value;
+
+                if (diff < 0) {
+                  return "#7CE449";
+                } else if (diff >= 10 && diff < 20) {
+                  return "#E0AF28";
+                } else {
+                  return "#FF0000";
+                }
+              },
+              function({ value, seriesIndex, w }) {
+                return "#44aaff";
+              }
+            ],
+            plotOptions: {
+              radialBar: {
+                dataLabels: {
+                  name: {
+                    fontSize: "22px"
+                  },
+                  value: {
+                    fontSize: "16px"
+                  },
+                  total: {
+                    show: true,
+                    label: "Current",
+                    formatter: function(chart) {
+                      // By default this function returns the average of all series. The below is just an example to show the use of custom formatter function
+                      return chart.config.series[0] + "%";
+                    }
+                  }
+                }
+              }
+            }
+            // responsive: [{
+            //   breakpoint: 480,
+            //   options: {
+            //     chart: {
+            //       width: 200
+            //     },
+            //     legend: {
+            //       position: 'bottom'
+            //     }
+            //   }
+            // }]
+          },
+
+          series: [91.7, 93.8]
+        },
+
+        member_overall_chart: {
+          series: [],
+          options: {
+            chart: {
+              type: "bar",
+              stacked: true
+            },
+            plotOptions: {
+              bar: {
+                horizontal: true,
+                barHeight: "75%"
+              }
+            },
+            stroke: {
+              width: 1,
+              colors: ["#fff"]
+            },
+            title: {
+              text: "Member overall",
+              align: "center"
+            },
+            xaxis: {
+              categories: []
+            },
+            tooltip: {
+              y: {
+                formatter: function(val) {
+                  return val + " Request";
+                }
+              }
+            },
+            fill: {
+              opacity: 1
+            },
+            legend: {
+              position: "bottom",
+              horizontalAlign: "center"
+            }
+          }
+        },
+
+        member_detail_chart: {
+          series: [],
+          options: {
+            chart: {
+              type: "bar"
+            },
+            plotOptions: {
+              bar: {
+                borderRadius: 10,
+                dataLabels: {
+                  position: "center" // top, center, bottom
+                }
+              }
+            },
+            tooltip: {
+              x: {
+                show: true
+              },
+              y: {
+                formatter: function(val) {
+                  return val;
+                }
+              }
+            },
+            dataLabels: {
+              enabled: false
+            },
+
+            xaxis: {
+              categories: [],
+              type: "datetime"
+            }
+          },
+          data: {},
+          current_member: ""
+        }
+      }
+    };
+  },
+  methods: {
+    TrackingRound(round_id) {
+      this.$router.push({ name: "PathList", round_id: round_id });
+    }
+  },
+
+  computed: {
+    statusChartData: function() {
+      return utils.getRoundStatusChartData(this.round);
+    }
+    /*
+    progressChartData: function() {
+      return utils.getRoundProgressChartData(this.round.data, this.path.data);
+    },
+*/
+  }
+};
+</script>

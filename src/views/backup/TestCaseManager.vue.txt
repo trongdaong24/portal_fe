@@ -1,0 +1,810 @@
+<template>
+  <q-page class="ub-page">
+    <!--
+    <div class="row items-center">
+      <div class="col-md-12 q-ma-sm">
+        <div class="text-h6">Test Case Manager</div>
+      </div>
+    </div>
+-->
+    <div class="row" style="margin-bottom: 10px">
+      <div class="col-12 col-md-4">
+        <q-card flat bordered class="my-card">
+          <q-card-section>
+            <div class="text-subtitle2">Functions</div>
+            <div>
+              <div class="q-pa-md" style="display: flex">
+                <div class="q-gutter-md">
+                  <div style="display: flex">
+                    <form @submit="searchFunction">
+                      <div style="display: flex">
+                        <div
+                          class="q-gutter-md"
+                          style="max-width: 300px; height: 35px"
+                        >
+                          <q-input
+                            dense
+                            :input-style="{ height: '42px' }"
+                            v-model="searchValueFunction"
+                            label=""
+                          />
+                        </div>
+                        <q-btn
+                          type="submit"
+                          outline
+                          color="green-6"
+                          label="search"
+                        />
+                      </div>
+                    </form>
+
+                    <div class="cursor-pointer" style="width: 100px">
+                      <q-btn flat round color="green-6" icon="mdi-plus-thick" />
+                      <q-popup-edit
+                        v-model="FunctionTemplate"
+                        class="bg-accent text-white"
+                        @save="insertFunction"
+                      >
+                        <form @submit="insertFunction">
+                          <q-input
+                            borderless
+                            v-model="FunctionTemplate.function_name"
+                            label="Name"
+                          />
+                          <q-input
+                            borderless
+                            v-model="FunctionTemplate.function_color"
+                            label="Color"
+                          />
+                          <q-input
+                            borderless
+                            v-model="FunctionTemplate.function_description"
+                            label="Descriptions"
+                          />
+                          <q-btn
+                            type="submit"
+                            outline
+                            style="color: goldenrod"
+                            label="Insert"
+                          />
+                        </form>
+                        <template v-slot:append>
+                          <q-icon name="edit"></q-icon>
+                        </template>
+                      </q-popup-edit>
+                    </div>
+                    <div>
+                      <q-btn
+                        flat
+                        round
+                        color="grey-6"
+                        @click="deleteFunction"
+                        icon="mdi-trash-can-outline"
+                        onclick="return confirm('Are you sure?')"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <q-list padding class="rounded-borders text-primary">
+              <q-scroll-area style="height: 309px">
+                <q-list bordered class="rounded-">
+                  <q-expansion-item
+                    group="function"
+                    switch-toggle-side
+                    expand-separator
+                    :label="test.name"
+                    :active="link === test.name"
+                    active-class="my-menu-link"
+                    @click="clickfunctiondetail(test)"
+                    v-for="test in tests"
+                    :key="test.name"
+                  >
+                    <q-card>
+                      <q-card-section>
+                        <form @submit="editFunction">
+                          <q-input
+                            borderless
+                            v-model="FunctionTemplate.function_name"
+                            label="Name"
+                          />
+                          <q-input
+                            borderless
+                            v-model="FunctionTemplate.function_color"
+                            label="Color"
+                          />
+                          <q-input
+                            borderless
+                            v-model="FunctionTemplate.function_description"
+                            label="Descriptions"
+                          />
+                          <q-btn
+                            type="submit"
+                            outline
+                            style="color: green-6"
+                            label="Save"
+                          />
+                        </form>
+                      </q-card-section>
+                    </q-card>
+                  </q-expansion-item>
+                </q-list>
+              </q-scroll-area>
+            </q-list>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <div class="col-12 col-md-8" style="padding: 5px">
+        <q-card flat bordered class="my-card">
+          <q-card-section>
+            <div class="text-subtitle2">Testcase template</div>
+            <div style="display: flex">
+              <div>
+                <form @submit="searchTestcase">
+                  <div style="display: flex">
+                    <div style="height: 42px">
+                      <q-input
+                        dense
+                        :input-style="{ height: '42px' }"
+                        v-model="searchValue"
+                      />
+                    </div>
+
+                    <q-btn
+                      type="submit"
+                      outline
+                      color="green-6"
+                      label="search"
+                    />
+                  </div>
+                </form>
+              </div>
+              <q-btn
+                flat
+                round
+                color="green-6"
+                icon="mdi-plus-thick"
+                @click="insertTemplateClick"
+              />
+              <q-btn
+                outline
+                color="purple-6"
+                label="Import"
+                style="margin-right: 5px"
+              />
+              <q-btn outline color="indigo-6" label="Export" />
+            </div>
+            <div>
+              <ve-table
+                :max-height="350"
+                :checkbox-option="checkboxOption"
+                :virtual-scroll-option="virtualScrollOption"
+                :columns="columns"
+                :table-data="tableData"
+                :event-custom-option="eventCustomOption"
+                row-key-field-name="rowKey"
+              />
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12 col-md-12">
+        <q-card flat bordered class="my-card">
+          <q-card-section>
+            <template
+              v-if="
+                loadtestcase === false &&
+                  loadfunction === false &&
+                  loadfunctiondetail === false
+              "
+            >
+              <div class="text-subtitle2">Testcase detail</div>
+              <form @submit="insertTestcase">
+                <div style="display: grid">
+                  <div>
+                    <q-btn
+                      style="float: right"
+                      type="submit"
+                      outline
+                      color="green-6"
+                      label="Insert"
+                    />
+                  </div>
+                  <br />
+                  <div class="form-group" style="margin-bottom: 10px">
+                    <q-input
+                      filled
+                      v-model="TestcaseTemplate.template_name"
+                      label="Testcase templatet name"
+                    />
+                    <br />
+                    <q-input
+                      filled
+                      v-model="TestcaseTemplate.template_description"
+                      label="Testcase template description"
+                    />
+                    <br />
+                    <q-input
+                      filled
+                      v-model="TestcaseTemplate.template_expected_output"
+                      label="Testcase template expected output"
+                    />
+                  </div>
+                </div>
+              </form>
+            </template>
+            <template v-if="loadtestcase === true">
+              <div class="text-subtitle2">Testcase detail</div>
+
+              <form @submit="editTestcase">
+                <div style="display: grid">
+                  <div style="float: right">
+                    <div style="display: flex; float: right">
+                      <q-btn
+                        type="submit"
+                        outline
+                        color="green-6"
+                        label="Save"
+                      />
+                      <form @submit="deleteTestcase">
+                        <q-btn
+                          type="submit"
+                          outline
+                          color="red-6"
+                          label="Delete"
+                          onclick="return confirm('Are you sure delete?')"
+                        />
+                      </form>
+                    </div>
+                  </div>
+                  <br />
+                  <div class="form-group" style="margin-bottom: 10px">
+                    <q-input
+                      filled
+                      v-model="TestcaseTemplate.template_name"
+                      label="Testcase template name"
+                    />
+                    <br />
+                    <q-input
+                      filled
+                      v-model="TestcaseTemplate.template_description"
+                      label="Testcase template description"
+                    />
+                    <br />
+                    <q-input
+                      filled
+                      v-model="TestcaseTemplate.template_expected_output"
+                      label="Testcase template expected output"
+                    />
+                  </div>
+                </div>
+              </form>
+            </template>
+          </q-card-section>
+          <q-separator dark />
+          <q-card-section> </q-card-section>
+        </q-card>
+      </div>
+    </div>
+  </q-page>
+</template>
+
+<script>
+import axios from "axios";
+import { getHeader } from "@/services/config.js";
+import { AUTH_REFRESH } from "../store/actions/auth";
+import forms from "./forms.vue";
+
+export default {
+  name: "TestCaseManager",
+  data() {
+    return {
+      eventCustomOption: {
+        bodyRowEvents: ({ row, rowIndex }) => {
+          return {
+            click: event => {
+              this.onRowClickTestcase(row);
+            }
+          };
+        }
+      },
+      eventCustomOptionFunction: {
+        bodyRowEvents: ({ row, rowIndex }) => {
+          return {
+            click: event => {
+              this.onRowClickFcuntion(row);
+            }
+          };
+        }
+      },
+      searchValueFunction: "",
+      searchValue: "",
+      expanded: false,
+      testcaseName: "",
+      loadfunction: false,
+      loadtestcase: false,
+      loadfunctiondetail: false,
+      tests: [],
+      link: null,
+      virtualScrollOption: {
+        enable: true
+      },
+      TestcaseTemplate: {
+        id: "",
+        template_checklists: [],
+        template_expected_output: "",
+        template_description: "",
+        template_name: ""
+      },
+      FunctionTemplate: {
+        id: "",
+        function_name: "",
+        function_color: "",
+        function_description: "",
+        function_testcase: []
+      },
+
+      checkboxOption: {
+        // row select change event
+        selectedRowKeys: [],
+        selectedRowChange: ({ row, isSelected, selectedRowKeys }) => {
+          this.changeSelectedRowKeys(selectedRowKeys);
+          console.log("isSelect" + isSelected);
+          if (isSelected === true) {
+            if (this.FunctionTemplate.id !== "" && this.TestcaseTemplate.id) {
+              this.editFunctionIdToTemplate(
+                "http://127.0.0.1:8000/api/function/",
+                { id: this.TestcaseTemplate.id, is_add: 1 }
+              );
+              this.sortChange();
+            }
+          } else {
+            if (this.FunctionTemplate.id !== "" && this.TestcaseTemplate.id) {
+              this.editFunctionIdToTemplate(
+                "http://127.0.0.1:8000/api/function/",
+                { id: this.TestcaseTemplate.id, is_add: 0 }
+              );
+              this.sortChange();
+            }
+          }
+        }
+        // selected all change event
+        // selectedAllChange: ({ isSelected, selectedRowKeys }) => {
+        //   console.log(isSelected, selectedRowKeys);
+        // },
+      },
+
+      columns: [
+        // { field: "index", key: "index", title: "", align: "center", width: 50 },
+        {
+          field: "checkfunction",
+          key: "checkbox",
+          title: "",
+          type: "checkbox",
+          width: 50,
+          align: "center"
+        },
+        {
+          field: "testcasename",
+          key: "testcasename",
+          title: "Name",
+          width: 100,
+          align: "left"
+        },
+        {
+          field: "description",
+          key: "description",
+          title: "Description",
+          width: 200,
+          align: "left"
+        },
+        {
+          field: "template_expected_output",
+          key: "template_expected_output",
+          title: "Expected output",
+          width: 100,
+          align: "left"
+        }
+      ],
+      tableData: [],
+      sourceDataTestcase: [],
+      sourceFunction: []
+    };
+  },
+  mounted() {},
+  created() {
+    this.getTestCaseTemplate("http://127.0.0.1:8000/api/template/");
+    this.getFunctionTemplate("http://127.0.0.1:8000/api/function/");
+  },
+  methods: {
+    searchTestcase() {
+      console.log(this.searchTestcase);
+      if (this.searchValue !== "") {
+        let tmpData = [];
+        this.sourceDataTestcase.forEach(element => {
+          console.log(element);
+          if (
+            element.testcasename.includes(this.searchValue) == true ||
+            element.description.includes(this.searchValue) == true ||
+            element.template_expected_output.includes(this.searchValue) == true
+          ) {
+            tmpData.push(element);
+          }
+        });
+
+        this.tableData = tmpData;
+      } else {
+        this.tableData = sourceDataTestcase;
+      }
+    },
+
+    searchFunction() {
+      if (this.searchValueFunction !== "") {
+        let tmpdata = [];
+        this.sourceFunction.forEach(element => {
+          if (
+            element.name.includes(this.searchValueFunction) ||
+            element.color.includes(this.searchValueFunction) ||
+            element.description.includes(this.searchValueFunction)
+          ) {
+            tmpdata.push(element);
+          }
+        });
+        this.tests = tmpdata;
+      } else {
+        this.tests = this.sourceFunction;
+      }
+    },
+    changeSelectedRowKeys(keys) {
+      this.checkboxOption.selectedRowKeys = keys;
+    },
+    sortChange() {
+      let data = this.tableData.slice(0);
+      let dataToAdd = [];
+      let listCheckboxed = this.checkboxOption.selectedRowKeys;
+      let indexRemove = [];
+
+      for (let i = data.length - 1; i >= 0; i--) {
+        listCheckboxed.forEach(element => {
+          if (data[i]["rowKey"] === element) {
+            dataToAdd.push(data[i]);
+            indexRemove.push(i);
+          }
+        });
+      }
+      for (let i = 0; i < indexRemove.length; i++) {
+        data.splice(indexRemove[i], 1);
+      }
+
+      dataToAdd.forEach(element => {
+        data.unshift(element);
+      });
+      this.tableData = data;
+    },
+    clickfunctiondetail(test) {
+      this.FunctionTemplate.id = test.id;
+      this.FunctionTemplate.function_name = test.name;
+      this.FunctionTemplate.function_color = test.color;
+      this.FunctionTemplate.function_description = test.description;
+      this.FunctionTemplate.function_testcase = test.function_testcase;
+
+      this.checkboxOption.selectedRowKeys = [];
+      this.tableData.forEach(element => {
+        console.log(element);
+
+        if (this.FunctionTemplate.function_testcase.includes(element.rowKey)) {
+          this.checkboxOption.selectedRowKeys.push(element.rowKey);
+        }
+      });
+      this.sortChange();
+      this.expanded = true;
+    },
+
+    insertTemplateClick() {
+      this.TestcaseTemplate.functionid = [];
+      this.TestcaseTemplate.template_name = "";
+      this.TestcaseTemplate.template_description = "";
+      this.TestcaseTemplate.template_expected_output = "";
+      this.loadtestcase = false;
+      this.loadfunction = false;
+      this.loadfunctiondetail = false;
+    },
+    insertFunction() {
+      this.FunctionTemplate.function_testcase = [];
+      axios
+        .post("http://127.0.0.1:8000/api/function/", this.FunctionTemplate)
+        .then(res => {
+          if (res.data.status.includes("success")) {
+            this.getFunctionTemplate("http://127.0.0.1:8000/api/function/");
+          } else {
+            alert(res.data.status);
+          }
+        });
+    },
+    insertTestcase() {
+      axios
+        .post("http://127.0.0.1:8000/api/template/", this.TestcaseTemplate)
+        .then(res => {
+          if (!res.data.status.includes("error")) {
+            this.getFunctionTemplate("http://127.0.0.1:8000/api/template/");
+          } else {
+            alert(res.data.status);
+          }
+        });
+    },
+    editTestcase() {
+      let testcase_template_tmp = this.TestcaseTemplate;
+      console.log(testcase_template_tmp);
+      axios
+        .put(
+          "http://127.0.0.1:8000/api/template/" +
+            testcase_template_tmp.id +
+            "/",
+          testcase_template_tmp
+        )
+        .then(res => {
+          if (res.data.status.includes("success")) {
+            let tmpDataTable = [];
+            this.tableData.forEach(element => {
+              if (element.index === testcase_template_tmp.id) {
+                tmpDataTable.push({
+                  rowKey: testcase_template_tmp.id,
+                  index: testcase_template_tmp.id,
+                  testcasename: testcase_template_tmp.template_name,
+                  description: testcase_template_tmp.template_description,
+                  template_expected_output:
+                    testcase_template_tmp.template_expected_output
+                });
+              } else {
+                tmpDataTable.push(element);
+              }
+            });
+            this.tableData = tmpDataTable;
+            console.log(this.tableData);
+          } else {
+            alert(res.data.status);
+          }
+        });
+    },
+    editFunction() {
+      let function_template_tmp = this.FunctionTemplate;
+      console.log(function_template_tmp);
+      axios
+        .put(
+          "http://127.0.0.1:8000/api/function/" +
+            function_template_tmp.id +
+            "/",
+          function_template_tmp
+        )
+        .then(res => {
+          if (res.data.status.includes("success")) {
+            this.getFunctionTemplate("http://127.0.0.1:8000/api/function/");
+          } else {
+            alert(res.data.status);
+          }
+        });
+      this.getFunctionTemplate("http://127.0.0.1:8000/api/function/");
+    },
+    editFunctionIdToTemplate(url, edit_input) {
+      axios
+        .post(
+          url + this.FunctionTemplate.id + "/" + "set_testcase_template" + "/",
+          edit_input
+        )
+        .then(res => {
+          if (res.data.status.includes("error")) {
+            alert(res.data.status);
+          } else {
+            this.getTestCaseTemplate("http://127.0.0.1:8000/api/template/");
+          }
+        });
+    },
+    deleteTestcase() {
+      axios
+        .delete(
+          "http://127.0.0.1:8000/api/template/" + this.TestcaseTemplate.id + "/"
+        )
+        .then(res => {
+          if (res.data.status === "delete testcase template success") {
+            this.tableData = this.tableData.filter(
+              item => item.rowKey !== this.TestcaseTemplate.id
+            );
+          }
+          if (res.data.status.includes("error")) {
+            alert(res.data.status);
+          }
+        });
+    },
+    deleteFunction() {
+      if (this.FunctionTemplate.id !== "") {
+        axios
+          .delete(
+            "http://127.0.0.1:8000/api/function/" +
+              this.FunctionTemplate.id +
+              "/"
+          )
+          .then(res => {
+            if (res.data.status.includes("success")) {
+              this.getFunctionTemplate("http://127.0.0.1:8000/api/function/");
+            } else {
+              alert(res.data.status);
+            }
+          });
+      }
+    },
+
+    onRowClickTestcase: function(row) {
+      // this.loadrequest = true;
+      this.TestcaseTemplate.id = row.rowKey;
+      this.TestcaseTemplate.functionid = row.functionid;
+      this.TestcaseTemplate.template_name = row.testcasename;
+      this.TestcaseTemplate.template_description = row.description;
+      this.TestcaseTemplate.template_expected_output =
+        row.template_expected_output;
+      this.loadtestcase = true;
+      this.loadfunction = false;
+      this.loadfunctiondetail = false;
+    },
+    onRowClickFcuntion: function(row) {
+      this.FunctionTemplate.id = row.rowKey;
+      this.FunctionTemplate.function_name = row.function_name;
+      this.FunctionTemplate.function_color = row.function_color;
+      this.FunctionTemplate.function_description = row.function_description;
+      this.loadfunctiondetail = true;
+      this.loadtestcase = false;
+      this.loadfunction = false;
+    },
+
+    getTestCaseTemplate(url) {
+      axios
+        .get(url, { headers: getHeader() })
+        .then(response => {
+          console.log(response.data);
+          this.sourceDataTestcase = [];
+          this.tableData = [];
+          response.data.results.forEach(element => {
+            this.sourceDataTestcase.push({
+              rowKey: element.id,
+              index: element.id,
+              testcasename: element.template_name,
+              description: element.template_description,
+              functionid: element.template_checklists,
+              template_expected_output: element.template_expected_output
+            });
+            if (this.checkboxOption.selectedRowKeys.includes(element.id)) {
+              this.tableData.unshift({
+                rowKey: element.id,
+                index: element.id,
+                testcasename: element.template_name,
+                description: element.template_description,
+                functionid: element.template_checklists,
+                template_expected_output: element.template_expected_output
+              });
+            } else {
+              this.tableData.push({
+                rowKey: element.id,
+                index: element.id,
+                testcasename: element.template_name,
+                description: element.template_description,
+                functionid: element.template_checklists,
+                template_expected_output: element.template_expected_output
+              });
+            }
+          });
+        })
+        .catch(error => {
+          if (error.response.status == 401) {
+            let refresh = JSON.parse(localStorage.getItem("user-token"))
+              .refresh;
+            this.$store
+              .dispatch(AUTH_REFRESH, { refresh })
+              .then(() => {
+                axios
+                  .get("http://127.0.0.1:8000/api/template/", {
+                    headers: getHeader()
+                  })
+                  .then(response => {
+                    response.data.forEach(element => {
+                      this.sourceDataTestcase.push({
+                        rowKey: element.id,
+                        index: element.id,
+                        testcasename: element.template_name,
+                        description: element.template_description,
+                        functionid: element.template_checklists,
+                        template_expected_output:
+                          element.template_expected_output
+                      });
+                      this.tableData.push({
+                        rowKey: element.id,
+                        index: element.id,
+                        testcasename: element.template_name,
+                        description: element.template_description,
+                        functionid: element.template_checklists,
+                        template_expected_output:
+                          element.template_expected_output
+                      });
+                    });
+                    this.loaded = true;
+                  });
+              })
+              .catch(() => this.$router.push("/login"));
+          }
+        });
+    },
+    getFunctionTemplate(url) {
+      axios
+        .get(url, { headers: getHeader() })
+        .then(response => {
+          this.tests = [];
+          this.sourceFunction = [];
+          response.data.results.forEach(element => {
+            this.sourceFunction.push({
+              id: element.id,
+              name: element.function_name,
+              color: element.function_color,
+              description: element.function_description,
+              function_testcase: element.function_testcase
+            });
+            this.tests.push({
+              id: element.id,
+              name: element.function_name,
+              color: element.function_color,
+              description: element.function_description,
+              function_testcase: element.function_testcase
+            });
+          });
+        })
+        .catch(error => {
+          if (error.response.status == 401) {
+            let refresh = JSON.parse(localStorage.getItem("user-token"))
+              .refresh;
+            this.$store
+              .dispatch(AUTH_REFRESH, { refresh })
+              .then(() => {
+                axios
+                  .get("http://127.0.0.1:8000/api/function/", {
+                    headers: getHeader()
+                  })
+                  .then(response => {
+                    response.data.forEach(element => {
+                      this.sourceFunction.push({
+                        id: element.id,
+                        name: element.function_name,
+                        color: element.function_color,
+                        description: element.function_description,
+                        function_testcase: element.function_testcase
+                      });
+                      this.tests.push({
+                        id: element.id,
+                        name: element.function_name,
+                        color: element.function_color,
+                        description: element.function_description,
+                        function_testcase: element.function_testcase
+                      });
+                    });
+                  });
+              })
+              .catch(() => this.$router.push("/login"));
+          }
+        });
+    }
+  }
+};
+</script>
+
+<style lang="sass">
+.my-menu-link
+  color: white
+  background: #F2C037
+</style>
+
+<style>
+input {
+  width: 100%;
+}
+</style>
